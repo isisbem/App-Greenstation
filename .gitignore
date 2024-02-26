@@ -1,0 +1,11 @@
+# dependencies
+*node_modules
+/node_modules
+
+#logs
+*logs
+test
+*log
+
+#apikey
+database.php
