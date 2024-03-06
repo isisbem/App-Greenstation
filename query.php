@@ -7,7 +7,6 @@
   </head>
   <body>
     <?php 
-      include 'db_conn.php';
       echo "<h1>Bring the data from SFTP server</h1>";
       // foreach($data as $analisi => $values) { }
     ?>
