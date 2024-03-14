@@ -1,26 +1,22 @@
 [
   {
-    "question": "Che cosa fa x?",
-    "description": "bu"
+    "question": "Che fate?",
+    "answer": "Programmatori della 5ia, che si divertono nel sperimentare le proprie conoscenze anche di recente acquisite al fine statistico e gestionale di una pensilina fotovoltaica a disposizione di tutti gli studenti frequentanti il BEM."
   },
   {
-    "question": "Che cosa fa x?",
-    "description": "bu"
+    "question": "Che dati prendete?",
+    "answer": "Noi possiamo rilevare di base tutti i dati immaginabili, dalla corrente istantanea al consumo medio, dal numero di utilizzi giornaliero a quello medio annuale passando per ogni mese a rilevare gli utilizzi."
   },
   {
-    "question": "Che cosa fa x?",
-    "description": "bu"
+    "question": "Questa app sarà opensource?",
+    "answer": "La risposta è: SI'! Sarà presto online e la potranno usare tutti per prenotare le proprie prese!"
   },
   {
-    "question": "Che cosa fa x?",
-    "description": "bu"
+    "question": "Come si usa?",
+    "answer": "Se si vuole prenotare basterà cliccare sul pulsante 'prenota' e riservare la presa. Si può farlo per un massimo di 2 ore in un singolo ciclo."
   },
   {
-    "question": "Che cosa fa x?",
-    "description": "bu"
-  },
-  {
-    "question": "Che cosa fa x?",
-    "description": "bu"
+    "question": "Se le prese sono tutte prenotate?",
+    "answer": "In questo caso basterà aspettare che se ne liberi una, dato che ogni due ore automaticamente la corrente verrà staccata in modo che il più ampio numero di persone con i propri mezzi elettrici ne potrà usufruire"
   }
 ]

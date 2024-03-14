@@ -1,6 +1,22 @@
+<?php
+  $dataPoints = array(
+    array("y" => 6, "label" => "January"),
+    array("y" => 8, "label" => "February"),
+    array("y" => 16, "label" => "March"),
+    array("y" => 26, "label" => "April"),
+    array("y" => 10, "label" => "May"),
+    array("y" => 16, "label" => "June"),
+    array("y" => 4, "label" => "July"),
+    array("y" => 9, "label" => "August"),
+    array("y" => 22, "label" => "September"),
+    array("y" => 15, "label" => "October"),
+    array("y" => 14, "label" => "November"),
+    array("y" => 4, "label" => "Dicember"),
+  );
+?>
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +24,23 @@
   <link rel="stylesheet" href="./assets/tailwind.css">
   <link rel="stylesheet" href="./node_modules/tailwindcss/tailwind.css">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    window.onload = function() {
+      var chart = new CanvasJS.Chart("chartContainer", {
+        title: {
+          text: "Utilizzo delle prese da Gen-Dic 2024"
+        },
+        axisY: {
+          title: "Utilizzo Medio Giornaliero"
+        },
+        data: [{
+          type: "line",
+          dataPoints: <?php echo json_encode($dataPoints, JSON_NUMERIC_CHECK); ?>
+        }]
+      });
+      chart.render();
+    }
+  </script>
 </head>
 
 <body class="min-h-screen bg-green-500 text-neutral-100">
@@ -24,10 +57,10 @@
         <li class="max-w-[250px]"><a href="about.php">Chi siamo</a></li>
       </ul>
     </nav>
-
+    <!-- main content -->
     <div class="container min-h-screen mt-16 pl-8 mx-auto">
-      <h1>Grafico delle prese</h1>
-      <p>dati</p>
+      <h1 class="w-full text-center font-bold font-sans text-2xl lg:text-3xl mb-8 mt-2">Grafico delle prese</h1>
+      <div id="chartContainer" style="height: 370px; width: 100%;"></div>
       <?php
       // require 'database.php';
       // $sql = "SELECT * FROM dati";
@@ -45,6 +78,6 @@
       ?>
     </div>
   </div>
+  <script src="https://cdn.canvasjs.com/canvasjs.min.js"></script>
 </body>
-
 </html>
