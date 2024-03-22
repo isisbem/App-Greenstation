@@ -5,25 +5,14 @@ document.addEventListener("DOMContentLoaded", function () {
   let thisY = date.getFullYear();
   year.innerHTML = thisY;
 
-  // Buttons
-  const prenotaButtons = document.querySelectorAll(".prenota-btn");
+  // stato, index
   const realTimeStates = document.querySelectorAll(".stato");
-  // per ogni button, aggiorno lo stato
-  prenotaButtons.forEach(button => {
-    button.addEventListener("click", function () {
-      const parentDiv = button.closest(".w-full");
-      const svgIcon = parentDiv.querySelector("svg");
-      const index = parseInt(button.dataset.index);
+  let svg = document.querySelectorAll("svg.icon");
+    // const index = parseInt(realTimeStates.dataset.index);
 
-      if (button.dataset.state === "prenota") {
-        svgIcon.classList.remove("text-green-600");
-        svgIcon.classList.add("text-red-500");
-        realTimeStates[index].innerHTML = 'Prenotata!';
-      } else {
-        svgIcon.classList.remove("text-red-500");
-        svgIcon.classList.add("text-green-600");
-        realTimeStates[index].innerHTML = 'Libera!';
-      }
-    })
+  svg.forEach(function (svgs, index) {
+    svgs.classList.contains("text-green-600") 
+    ? realTimeStates[index].innerHTML = 'Libera!'
+    : realTimeStates[index].innerHTML = 'Occupata!';
   })
 })
