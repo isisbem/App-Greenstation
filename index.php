@@ -36,13 +36,6 @@
         if($sftp) {
           echo "uploaded!";
         }
-        // $sql = "SELECT * FROM rilevamenti";
-        // $result = $conn->query($sql);
-        // if ($result->num_rows > 0) {
-        //   while ($row = $result->fetch_assoc()) {
-        //     echo "<div>" . $row["id_presa"] . "</div>";
-        //   }
-        // }
         /** download a file **/
         // $sftp->get('sampleToDownload.txt', 'sample2.txt');
         // echo 'downloaded';
@@ -92,6 +85,27 @@
             </div>
           </div>
         </div>
+      </div>
+      <!-- LOCAL TESTING -->
+      <div class="flex justify-center items-center flex-row gap-2 mt-8 pt-2 mb-16 pb-4">
+        <?php 
+          /**
+           * LOCAL TEST WITH LOCAL DB
+           */
+          include './data/db_conn_local.php';
+          $sql = "SELECT * FROM rilevamenti";
+          $result = $conn->query($sql);
+          echo "<div class'flex justify-between w-full items-start flex-row gap-2'>";
+          if ($result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+              echo "<div class='my-2 text-left flex flex-col justify-start items-start'>";
+                echo "<span>Numero presa: " . $row["id"] . "</span>";
+                echo "<span>Ora inizio carica: " . $row["data_ora_inizio_carica"] . "</span>";
+                echo "<span>Ora fine carica: " . $row["data_ora_fine_carica"] . "</span>";
+              echo "</div>"; 
+            }
+          }
+        ?>
       </div>
     </div>
 
