@@ -1,5 +1,13 @@
 <?php
+  // datapoints dinamici
+  // include 'database.php';
+  // $sql = "SELECT * FROM gsm WHERE rilevamenti IS NOT NULL";
+  $utilizzi = array();
+  // foreach($query as $rilevamenti) { } 
+
   $dataPoints = array(
+    // i numeri corrispondono all'utilizzo medio mensile della somma delle prese
+    // variabile $utilizzi[1,2,3...]
     array("y" => 6, "label" => "January"),
     array("y" => 8, "label" => "February"),
     array("y" => 16, "label" => "March"),
@@ -27,12 +35,8 @@
   <script>
     window.onload = function() {
       var chart = new CanvasJS.Chart("chartContainer", {
-        title: {
-          text: "Utilizzo delle prese da Gen-Dic 2024"
-        },
-        axisY: {
-          title: "Utilizzo Medio Giornaliero"
-        },
+        title: { text: "Utilizzo delle prese medio mensile da Gen-Dic 2024" },
+        axisY: { title: "Utilizzo medio mensile" },
         data: [{
           type: "line",
           dataPoints: <?php echo json_encode($dataPoints, JSON_NUMERIC_CHECK); ?>
@@ -66,18 +70,20 @@
       // $sql = "SELECT * FROM dati";
       // $result = $conn->query($sql);
       // echo "<ul>";
-      // if ($result->num_rows > 0) {
-      //   while ($row = $result->fetch_assoc()) {
-      //     echo "<li><span>presa n* </span>" . $row["id_presa"] . "</li>" . "<br />";
-      //     echo "<li><span>corrente istantanea </span>" . $row["corrente_istantanea"] . "</li>" . "<br />";
-      //     echo "<li><span>consumo totale </span>" . $row["consumo_totale"] . "</li>" . "<br />";
-      //     echo "<li><span>prese occupate </span>" . $row["prese_occupate"] . "</li>" . "<br />";
-      //   }
-      // }
+        // if ($result->num_rows > 0) {
+        //   while ($row = $result->fetch_assoc()) {
+        //     echo "<li><span>presa n* </span>" . $row["id_presa"] . "</li>" . "<br />";
+        //     echo "<li><span>corrente istantanea </span>" . $row["corrente_istantanea"] . "</li>" . "<br />";
+        //     echo "<li><span>consumo totale </span>" . $row["consumo_totale"] . "</li>" . "<br />";
+        //     echo "<li><span>prese occupate </span>" . $row["prese_occupate"] . "</li>" . "<br />";
+        //   }
+        // }
       // echo "</ul>";
       ?>
     </div>
   </div>
+  <?php include './components/footer.php'; ?>
+  <!-- link alla graph library -->
   <script src="https://cdn.canvasjs.com/canvasjs.min.js"></script>
 </body>
 </html>
