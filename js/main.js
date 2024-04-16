@@ -8,8 +8,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // stato, index
   const realTimeStates = document.querySelectorAll(".stato");
   let svg = document.querySelectorAll("svg.icon");
-    // const index = parseInt(realTimeStates.dataset.index);
-
   svg.forEach(function (svgs, index) {
     svgs.classList.contains("text-green-600") 
     ? realTimeStates[index].innerHTML = 'Libera!'

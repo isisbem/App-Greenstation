@@ -1,248 +1,149 @@
-// nome pensilina: SOLAR MPPT 250/100
-// marca pensilina: VICTRON ENERGY
-
-// sftp collegamento dalla pensilina al server
-// libreria usata: SimpleFTPServer (https://www.arduino.cc/reference/en/libraries/simpleftpserver/)
-
 /*
- * Upload firmware or filesystem (LittleFS) with FtpServer (esp8266 with SD)
- * when uploaded start automatic Update and reboot
- *
- * AUTHOR:  Renzo Mischianti
- *
- * https://mischianti.org/
+  Arduino Misuratore di potenzza e corrente elettrica con 
+  * SCT-013-030
 */
 
-#include <ESP8266WiFi.h>
-#include <SD.h>
-#include <LittleFS.h>
+#include "EmonLib.h" //Per il corretto funzionamento istallare la libreria EmonLib
+#include <Wire.h>    // Libreria wire già presente in Arduino ide
 
-#include <SimpleFTPServer.h>
+// oggetto libreria Emon
+EnergyMonitor emon1;
+// Inserire la tensione della vostra rete elettrica
+int rede = 230.0; // Italia 230V in alcuni paesi 110V  (voltage)
+// Pin del sensore SCT su A1
+int pin_sct = 1; // or A1
 
-const char *ssid = "<YOUR-SSID>";
-const char *password = "<YOUR-PASSWD>";
-
-FtpServer ftpSrv; // set #define FTP_DEBUG in ESP8266FtpServer.h to see ftp verbose on serial
-
-bool isFirmwareUploaded = false;
-bool isFilesystemUploaded = false;
-
-void progressCallBack(size_t currSize, size_t totalSize)
+void setup()
 {
-  Serial.printf("CALLBACK:  Update process at %d of %d bytes...\n", currSize, totalSize);
+  Serial.begin(9600);         // Apro la comunicazione seriale
+  emon1.current(pin_sct, 29); // Pin, calibrazione - Corrente Const= Ratio/Res. Burder. 1800/62 = 29.
 }
 
-#define FIRMWARE_VERSION 0.2
-String FILESYSTEM_VERSION = "0.0";
-
-void _callback(FtpOperation ftpOperation, unsigned int freeSpace, unsigned int totalSpace)
+void loop()
 {
-  switch (ftpOperation)
+  // Calcolo della corrente
+  double Irms = emon1.calcIrms(1480);
+  if (Irms)
   {
-  case FTP_CONNECT:
-    Serial.println(F("FTP: Connected!"));
-    break;
-  case FTP_DISCONNECT:
-    Serial.println(F("FTP: Disconnected!"));
-    break;
-  case FTP_FREE_SPACE_CHANGE:
-    if (isFirmwareUploaded)
-    {
-      Serial.println(F("The uploaded firmware now stored in FS!"));
-      Serial.print(F("\nSearch for firmware in FS.."));
-      String name = "firmware.bin";
-      File firmware = SD.open(name, FTP_FILE_READ);
-      if (firmware)
-      {
-        Serial.println(F("found!"));
-        Serial.println(F("Try to update!"));
-
-        Update.onProgress(progressCallBack);
-
-        Update.begin(firmware.size(), U_FLASH);
-        Update.writeStream(firmware);
-        if (Update.end())
-        {
-          Serial.println(F("Update finished!"));
-        }
-        else
-        {
-          Serial.println(F("Update error!"));
-          Serial.println(Update.getError());
-        }
-
-        firmware.close();
-
-        String renamed = name;
-        renamed.replace(".bin", ".bak");
-        if (SD.rename(name, renamed.c_str()))
-        {
-          Serial.println(F("Firmware rename succesfully!"));
-        }
-        else
-        {
-          Serial.println(F("Firmware rename error!"));
-        }
-        delay(2000);
-
-        ESP.reset();
-      }
-      else
-      {
-        Serial.println(F("not found!"));
-      }
-      // isFirmwareUploaded = false; // not need by reset
-    }
-    if (isFilesystemUploaded)
-    {
-      Serial.println(F("The uploaded Filesystem now stored in FS!"));
-      Serial.print(F("\nSearch for Filesystem in FS.."));
-      String name = "filesystem.bin";
-      File filesystem = SD.open(name, FTP_FILE_READ);
-      if (filesystem)
-      {
-        Serial.println(F("found!"));
-        Serial.println(F("Try to update!"));
-
-        Update.onProgress(progressCallBack);
-
-        Update.begin(filesystem.size(), U_FS);
-        Update.writeStream(filesystem);
-        if (Update.end())
-        {
-          Serial.println(F("Update finished!"));
-        }
-        else
-        {
-          Serial.println(F("Update error!"));
-          Serial.println(Update.getError());
-        }
-
-        filesystem.close();
-
-        String renamed = name;
-        renamed.replace(".bin", ".bak");
-        if (SD.rename(name, renamed.c_str()))
-        {
-          Serial.println(F("Filesystem rename succesfully!"));
-        }
-        else
-        {
-          Serial.println(F("Filesystem rename error!"));
-        }
-        delay(2000);
-
-        ESP.reset();
-      }
-      else
-      {
-        Serial.println(F("not found!"));
-      }
-      // isFilesystemUploaded = false; // not need by reset
-    }
-    Serial.printf("FTP: Free space change, free %u of %u!\n", freeSpace, totalSpace);
-    break;
-  default:
-    break;
-  }
-};
-void _transferCallback(FtpTransferOperation ftpOperation, const char *name, unsigned int transferredSize)
-{
-  switch (ftpOperation)
-  {
-  case FTP_UPLOAD_START:
-    Serial.println(F("FTP: Upload start!"));
-    break;
-  case FTP_UPLOAD:
-    Serial.printf("FTP: Upload of file %s byte %u\n", name, transferredSize);
-    break;
-  case FTP_TRANSFER_STOP:
-    Serial.println(F("FTP: Finish transfer!"));
-    break;
-  case FTP_TRANSFER_ERROR:
-    Serial.println(F("FTP: Transfer error!"));
-    break;
-  default:
-    break;
-  }
-
-  /* FTP_UPLOAD_START = 0,
-   * FTP_UPLOAD = 1,
-   *
-   * FTP_DOWNLOAD_START = 2,
-   * FTP_DOWNLOAD = 3,
-   *
-   * FTP_TRANSFER_STOP = 4,
-   * FTP_DOWNLOAD_STOP = 4,
-   * FTP_UPLOAD_STOP = 4,
-   *
-   * FTP_TRANSFER_ERROR = 5,
-   * FTP_DOWNLOAD_ERROR = 5,
-   * FTP_UPLOAD_ERROR = 5
-   */
-
-  if (ftpOperation == FTP_UPLOAD_STOP && String(name).indexOf("firmware.bin") >= 0)
-  {
-    isFirmwareUploaded = true;
-  }
-  if (ftpOperation == FTP_UPLOAD_STOP && String(name).indexOf("filesystem.bin") >= 0)
-  {
-    isFilesystemUploaded = true;
-  }
-};
-
-void setup(void)
-{
-  Serial.begin(115200);
-  WiFi.begin(ssid, password);
-  Serial.println("");
-
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-
-  ftpSrv.setCallback(_callback);
-  ftpSrv.setTransferCallback(_transferCallback);
-
-  Serial.print(F("Inizializing FS..."));
-  if (LittleFS.begin())
-  {
-    Serial.println(F("done."));
+    // Mostra il valore della Corrente
+    Serial.print("Corrente :  ");
+    Serial.print(Irms); // Irms
+    // Calcola e mostra i valori della Potenza
+    Serial.print(" Potenza :  ");
+    Serial.println(Irms * rede); // Scrivo sul monitor seriale Corrente*Tensione=Potenza
   }
   else
   {
-    Serial.println(F("fail."));
+    Serial.println("Nessun valore");
+  }
+  Serial.print("- - - - -");
+  delay(1000);
+}
+
+/* FTP CODE */
+
+/*
+  Web client
+
+  This sketch connects to a website (http://www.google.com)
+  using an Arduino Wiznet Ethernet shield.
+
+  Circuit:
+  * Ethernet shield attached to pins 10, 11, 12, 13
+
+  created 18 Dec 2009
+  by David A. Mellis
+  modified 9 Apr 2012
+  by Tom Igoe, based on work by Adrian McEwen
+*/
+
+#include <SPI.h>
+#include <Ethernet.h>
+#include <SD.h>
+
+File myFile;
+
+// Enter a MAC address for your controller below.
+// Newer Ethernet shields have a MAC address printed on a sticker on the shield
+byte mac[] = {0x90, 0xA2, 0xDA, 0x0E, 0x07, 0xB8};
+// if you don't want to use DNS (and reduce your sketch size)
+// use the numeric IP instead of the name for the server:
+// IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
+char server[] = "127.0.0.1"; // name address for Google (using DNS)
+
+// Set the static IP address to use if the DHCP fails to assign
+IPAddress ip(169, 254, 144, 105);
+
+// Initialize the Ethernet client library
+// with the IP address and port of the server
+// that you want to connect to (port 80 is default for HTTP):
+EthernetClient client;
+
+void setup()
+{
+  // Open serial communications and wait for port to open:
+  Serial.begin(9600);
+  while (!Serial)
+  {
+    ; // wait for serial port to connect. Needed for Leonardo only
   }
 
-  Serial.print(F("FileSystem version "));
-  File versionFile = LittleFS.open(F("/version.txt"), "r");
-  if (versionFile)
+  // start the Ethernet connection:
+  if (Ethernet.begin(mac) == 0)
   {
-    FILESYSTEM_VERSION = versionFile.readString();
-    versionFile.close();
+    Serial.println("Failed to configure Ethernet using DHCP");
+    // no point in carrying on, so do nothing forevermore:
+    // try to congifure using IP address instead of DHCP:
+    Ethernet.begin(mac, ip);
   }
-  Serial.println(FILESYSTEM_VERSION);
+  // give the Ethernet shield a second to initialize:
+  delay(1000);
+  Serial.println("connecting...");
 
-  /////FTP Setup, ensure SD is started before ftp;  /////////
-  if (SD.begin(SS))
+  // if you get a connection, report back via serial:
+  if (client.connect(server, 80))
   {
-    Serial.println("SD opened!");
-    Serial.print(F("\nCurrent firmware version: "));
-    Serial.println(FIRMWARE_VERSION);
-
-    ftpSrv.begin("esp8266", "esp8266"); // username, password for ftp.   (default 21, 50009 for PASV)
+    Serial.println("connected");
+    // Make a HTTP request:
+    client.println("GET /upload.txt HTTP/1.1");
+    client.println("Host: 127.0.0.1");
+    client.println("Connection: close");
+    client.println();
+  }
+  else
+  {
+    // kf you didn't get a connection to the server:
+    Serial.println("connection failed");
   }
 }
-void loop(void)
+
+void loop()
 {
-  ftpSrv.handleFTP(); // make sure in loop you call handleFTP()!!
-  // server.handleClient();   //example if running a webserver you still need to call .handleClient();
+  // if there are incoming bytes available
+  // from the server, read them and print them:
+  if (client.available())
+  {
+    while (client.available())
+    {
+      char c = client.read();
+      myFile = SD.open("test.txt", FILE_WRITE);
+      if (myFile)
+      {
+        Serial.print("Writing to test.txt...");
+        myFile.println(c);
+        Serial.print(c);
+      }
+      myFile.close();
+    }
+  }
+  // if the server's disconnected, stop the client:
+  if (!client.connected())
+  {
+    Serial.println();
+    Serial.println("disconnecting.");
+    client.stop();
+    // do nothing forevermore:
+    while (true)
+      ;
+  }
 }

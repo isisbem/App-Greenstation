@@ -23,8 +23,7 @@
         <li class="max-w-[250px]"><a href="about.php">Chi siamo</a></li>
       </ul>
     </nav>
-
-    <div class="container min-h-screen mt-16 mx-auto">
+    <div class="container min-h-screen mt-12 mx-auto">
       <h1 class="w-full text-center font-bold font-sans text-2xl md:text-3xl lg:text-4xl mb-4">Pensilina fotovoltaica</h1>
       <div class="flex flex-col text-neutral-950 flex-col w-full max-w-[1124px] mx-auto lg:flex-nowrap justify-start items-center">
         <?php
@@ -78,9 +77,9 @@
       <!-- LOCAL TESTING -->
       <div class="flex justify-center items-center flex-row gap-2 mt-8 pt-2 mb-16 pb-4">
         <?php 
-          /**
+          /*
            * LOCAL TEST WITH LOCAL DB
-           */
+          */
           include './data/db_conn_local.php';
           $sql = "SELECT * FROM rilevamenti";
           $result = $conn->query($sql);
