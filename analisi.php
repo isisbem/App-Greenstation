@@ -6,8 +6,8 @@
   // foreach($query as $rilevamenti) { } 
 
   $dataPoints = array(
-    // i numeri corrispondono all'utilizzo medio mensile della somma delle prese
-    // variabile $utilizzi[1,2,3...]
+    /* i numeri corrispondono all'utilizzo medio mensile della somma delle prese
+    variabile $utilizzi[1,2,3...] */
     array("y" => 6, "label" => "January"),
     array("y" => 8, "label" => "February"),
     array("y" => 16, "label" => "March"),
@@ -64,7 +64,8 @@
     <!-- main content -->
     <div class="container min-h-screen mt-16 pl-8 mx-auto">
       <h1 class="w-full text-center font-bold font-sans text-2xl lg:text-3xl mb-8 mt-2">Grafico delle prese</h1>
-      <div id="chartContainer" style="height: 370px; width: 100%;"></div>
+      <!-- CHART DIV where the content is rendered by online's libraries -->
+      <div id="chartContainer" style="height: 370px; width: 100%; visibility: visible;"></div>
       <?php
       // require 'database.php';
       // $sql = "SELECT * FROM dati";
