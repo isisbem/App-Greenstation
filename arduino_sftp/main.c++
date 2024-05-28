@@ -5,78 +5,49 @@
  * Misuratore di potenza e corrente elettrica con SCT-013-030 e invio dati su server Apache
 */
 
-#include "EmonLib.h"
-#include <WiFi.h>
-#include <HTTPClient.h>
+#include <Ethernet.h>
+#include <SPI.h>
 
-// Credenziali WiFi
-const char* ssid = "NOME_RETE_WIFI";
-const char* password = "PASSWORD_RETE_WIFI";
 
-// Parametri server Apache
-const char* serverAddress = "https://soft-serv.it/gsm";
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  // default
+//byte ip[] = { 10, 0, 0, 177 };
+byte server[] = { 82, 223, 8, 163 }; // sftp server
 
-// Oggetto libreria Emon
-EnergyMonitor emon1;
+EthernetClient client;
 
-// Pin del sensore SCT su A1
-int pin_sct = 1;
-
-// Variazione per la calibrazione
-float calibrationFactor = 1.0;
-
-// Funzione di setup
-void setup() {
+void setup()
+{
+  Ethernet.begin(mac);
   Serial.begin(9600);
 
-  // Connessione WiFi
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.println("WiFi connesso!");
-
-  // Inizializzazione libreria Emon
-  emon1.current(pin_sct, calibrationFactor);
-}
-
-// Funzione loop
-void loop() {
-  // Calcolo della corrente
-  double Irms = emon1.calcIrms(1480);
-
-  // Creazione della richiesta HTTP
-  if (Irms) {
-    WiFiClientSecure client;
-    HTTPClient http(client);
-
-    // Preparazione dei dati da inviare
-    String data = "corrente=" + String(Irms) + "&potenza=" + String(Irms * 230); // Calcola la potenza (V*I)
-
-    // Invio della richiesta POST al server Apache
-    http.begin(serverAddress);
-    int httpCode = http.POST(data);
-
-    if (httpCode > 0) {
-      // Ricezione della risposta dal server
-      String payload = http.getString();
-      Serial.print("Risposta server: ");
-      Serial.println(payload);
-    } else {
-      Serial.print("Errore invio dati: ");
-      Serial.println(httpCode);
-    }
-
-    http.end();
-  } else {
-    Serial.println("Nessun valore");
-  }
-
   delay(1000);
+  Serial.println("connecting...");
+  Serial.println("my IP: ", Ethernet.gatewayIP());
+
+  if (client.connect(server, 80)) {
+    Serial.println("connected");
+    client.println("GET /search?q=arduino HTTP/1.0");
+    client.println();
+  } else {
+    Serial.println("connection failed");
+  }
 }
 
+void loop()
+{
+  if (client.available()) {
+    char c = client.read();
+    Serial.print(c);
+  }
+
+  if (!client.connected()) {
+    Serial.println();
+    Serial.println("...disconnecting...");
+    client.stop();
+    for(;;)
+      ;
+  }
+}
 /*------------------*/
 
 
