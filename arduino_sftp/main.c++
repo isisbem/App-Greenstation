@@ -1,61 +1,8 @@
 /*
-  codice provvisorio
-*/
-/*
- * Misuratore di potenza e corrente elettrica con SCT-013-030 e invio dati su server Apache
-*/
-
-#include <Ethernet.h>
-#include <SPI.h>
-
-
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  // default
-//byte ip[] = { 10, 0, 0, 177 };
-byte server[] = { 82, 223, 8, 163 }; // sftp server
-
-EthernetClient client;
-
-void setup()
-{
-  Ethernet.begin(mac);
-  Serial.begin(9600);
-
-  delay(1000);
-  Serial.println("connecting...");
-  Serial.println("my IP: ", Ethernet.gatewayIP());
-
-  if (client.connect(server, 80)) {
-    Serial.println("connected");
-    client.println("GET /search?q=arduino HTTP/1.0");
-    client.println();
-  } else {
-    Serial.println("connection failed");
-  }
-}
-
-void loop()
-{
-  if (client.available()) {
-    char c = client.read();
-    Serial.print(c);
-  }
-
-  if (!client.connected()) {
-    Serial.println();
-    Serial.println("...disconnecting...");
-    client.stop();
-    for(;;)
-      ;
-  }
-}
-/*------------------*/
-
-
-
-/*
   Arduino Misuratore di potenzza e corrente elettrica con 
   * SCT-013-030
 */
+
 #include "EmonLib.h" //Per il corretto funzionamento istallare la libreria EmonLib
 #include <Wire.h>    // Libreria wire già presente in Arduino ide
 
@@ -93,8 +40,8 @@ void loop()
   delay(1000);
 }
 
-
 /* FTP CODE */
+
 /*
   Web client
 

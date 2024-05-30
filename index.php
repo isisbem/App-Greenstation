@@ -35,6 +35,10 @@ if ($query->num_rows > 0)
     </nav>
     <div class="container min-h-screen mt-12 mx-auto">
       <h1 class="w-full text-center font-bold font-sans text-2xl md:text-3xl lg:text-4xl mb-4">Pensilina fotovoltaica</h1>
+      <!-- SFTP CONNECTION -->
+      <?php 
+        include 'database.php';
+      ?>
       <div class="flex flex-col text-neutral-950 flex-col w-full max-w-[1124px] mx-auto lg:flex-nowrap justify-start items-center">
         <div class="flex flex-nowrap justify-center items-center flex-col lg:flex-row mt-2">
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mt-4 lg:mt-0 flex-wrap sm:flex-nowrap">
