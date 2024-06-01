@@ -1,149 +1,167 @@
+/*--------------------------------------------------------------------------------------------------*/
 /*
-  Arduino Misuratore di potenzza e corrente elettrica con 
-  * SCT-013-030
+ * Misuratore di potenza e corrente elettrica con SCT-013-030 e invio dati su server Apache
 */
+// #include <Ethernet.h>
+// #include <SPI.h>
 
-#include "EmonLib.h" //Per il corretto funzionamento istallare la libreria EmonLib
-#include <Wire.h>    // Libreria wire già presente in Arduino ide
+// byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  // default
+// //byte ip[] = { 10, 0, 0, 177 };
+// byte server[] = { 82, 223, 8, 163 }; // sftp server
 
-// oggetto libreria Emon
-EnergyMonitor emon1;
-// Inserire la tensione della vostra rete elettrica
-int rede = 230.0; // Italia 230V in alcuni paesi 110V  (voltage)
-// Pin del sensore SCT su A1
-int pin_sct = 1; // or A1
+// EthernetClient client;
 
-void setup()
-{
-  Serial.begin(9600);         // Apro la comunicazione seriale
-  emon1.current(pin_sct, 29); // Pin, calibrazione - Corrente Const= Ratio/Res. Burder. 1800/62 = 29.
-}
+// void setup()
+// {
+//   Ethernet.begin(mac);
+//   Serial.begin(9600);
 
-void loop()
-{
-  // Calcolo della corrente
-  double Irms = emon1.calcIrms(1480);
-  if (Irms)
-  {
-    // Mostra il valore della Corrente
-    Serial.print("Corrente :  ");
-    Serial.print(Irms); // Irms
-    // Calcola e mostra i valori della Potenza
-    Serial.print(" Potenza :  ");
-    Serial.println(Irms * rede); // Scrivo sul monitor seriale Corrente*Tensione=Potenza
-  }
-  else
-  {
-    Serial.println("Nessun valore");
-  }
-  Serial.print("- - - - -");
-  delay(1000);
-}
+//   delay(1000);
+//   Serial.println("connecting...");
+//   Serial.println("my IP: ", Ethernet.gatewayIP());
 
-/* FTP CODE */
+//   if (client.connect(server, 80)) {
+//     Serial.println("connected");
+//     client.println("GET /search?q=arduino HTTP/1.0");
+//     client.println();
+//   } else {
+//     Serial.println("connection failed");
+//   }
+// }
 
-/*
-  Web client
+// void loop()
+// {
+//   if (client.available()) {
+//     char c = client.read();
+//     Serial.print(c);
+//   }
 
-  This sketch connects to a website (http://www.google.com)
-  using an Arduino Wiznet Ethernet shield.
+//   if (!client.connected()) {
+//     Serial.println();
+//     Serial.println("...disconnecting...");
+//     client.stop();
+//     for(;;)
+//       ;
+//   }
+// }
+/*--------------------------------------------------------------------------------------------------*/
 
-  Circuit:
-  * Ethernet shield attached to pins 10, 11, 12, 13
 
-  created 18 Dec 2009
-  by David A. Mellis
-  modified 9 Apr 2012
-  by Tom Igoe, based on work by Adrian McEwen
-*/
 
-#include <SPI.h>
+
+/*--------------------------------------------------------------------------------------------------*/
+// #include <Ethernet.h>
+// #include <SPI.h>
+// #include <TimeLib.h>
+
+// // Configurazione Ethernet
+// byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+// IPAddress server(82, 223, 8, 163); // IP del server PHP
+
+// EthernetClient client;
+
+// void setup() {
+//   Ethernet.begin(mac);
+//   Serial.begin(9600);
+//   delay(1000);
+
+//   Serial.println("connecting...");
+//   Serial.print("my IP: ");
+//   Serial.println(Ethernet.localIP());
+
+//   // Imposta l'ora iniziale (questo dovrebbe essere sincronizzato con un server NTP o RTC nel progetto reale)
+//   setTime(1622534400); // Esempio di timestamp Unix
+// }
+
+// void loop() {
+//   if (client.connect(server, 80)) {
+//     Serial.println("connected");
+
+//     // Ottieni il timestamp corrente
+//     char timestamp[20];
+//     sprintf(timestamp, "%04d-%02d-%02d-%02d:%02d:%02d", year(), month(), day(), hour(), minute(), second());
+
+//     // Dati da inviare
+//     String logData = "Your log data here"; // dati sensore (log, 0/1)
+//     String url = "/var/www/html/gsm/receiveData.php"; // percorso file php per l'upload a processedLog
+
+//     // Dati con timestamp
+//     String postData = "timestamp=" + String(timestamp) + "&data=" + logData;
+
+//     // Invio della richiesta HTTP POST
+//     client.println("POST " + url + " HTTP/1.1");
+//     client.println("Host: 82.223.8.163");
+//     client.println("Content-Type: application/x-www-form-urlencoded");
+//     client.print("Content-Length: ");
+//     client.println(postData.length());
+//     client.println();
+//     client.println(postData);
+
+//     // Attendere la risposta del server
+//     while (client.connected()) {
+//       if (client.available()) {
+//         char c = client.read();
+//         Serial.print(c);
+//       }
+//     }
+//     client.stop();
+//     Serial.println();
+//     Serial.println("...disconnected...");
+//   } else {
+//     Serial.println("connection failed");
+//   }
+//   delay(1000); // 1 min
+// }
+/*--------------------------------------------------------------------------------------------------*/
+
+
+
+/*--------------------------------------------------------------------------------------------------*/
 #include <Ethernet.h>
-#include <SD.h>
+#include <SPI.h>
+#include <TimeLib.h> // Da aggiungere
+#include <ArduinoFtpClient.h>  // Da aggiungere
 
-File myFile;
+// Configurazione Ethernet
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+IPAddress server(82, 223, 8, 163); // IP server PHP
 
-// Enter a MAC address for your controller below.
-// Newer Ethernet shields have a MAC address printed on a sticker on the shield
-byte mac[] = {0x90, 0xA2, 0xDA, 0x0E, 0x07, 0xB8};
-// if you don't want to use DNS (and reduce your sketch size)
-// use the numeric IP instead of the name for the server:
-// IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
-char server[] = "127.0.0.1"; // name address for Google (using DNS)
+EthernetClient ethClient;
+FtpClient ftpClient(ethClient);  // Oggetto ethClient per l'FTP
 
-// Set the static IP address to use if the DHCP fails to assign
-IPAddress ip(169, 254, 144, 105);
-
-// Initialize the Ethernet client library
-// with the IP address and port of the server
-// that you want to connect to (port 80 is default for HTTP):
-EthernetClient client;
-
-void setup()
-{
-  // Open serial communications and wait for port to open:
+void setup() {
+  Ethernet.begin(mac);
   Serial.begin(9600);
-  while (!Serial)
-  {
-    ; // wait for serial port to connect. Needed for Leonardo only
-  }
-
-  // start the Ethernet connection:
-  if (Ethernet.begin(mac) == 0)
-  {
-    Serial.println("Failed to configure Ethernet using DHCP");
-    // no point in carrying on, so do nothing forevermore:
-    // try to congifure using IP address instead of DHCP:
-    Ethernet.begin(mac, ip);
-  }
-  // give the Ethernet shield a second to initialize:
   delay(1000);
+
   Serial.println("connecting...");
+  Serial.print("my IP: ");
+  Serial.println(Ethernet.localIP());
 
-  // if you get a connection, report back via serial:
-  if (client.connect(server, 80))
-  {
-    Serial.println("connected");
-    // Make a HTTP request:
-    client.println("GET /upload.txt HTTP/1.1");
-    client.println("Host: 127.0.0.1");
-    client.println("Connection: close");
-    client.println();
-  }
-  else
-  {
-    // kf you didn't get a connection to the server:
-    Serial.println("connection failed");
-  }
-}
+  // Ora iniziale (questo dovrebbe essere sincronizzato con un server NTP o RTC nel progetto reale)
+  setTime(1622534400); // Esempio di timestamp Unix
 
-void loop()
-{
-  // if there are incoming bytes available
-  // from the server, read them and print them:
-  if (client.available())
-  {
-    while (client.available())
-    {
-      char c = client.read();
-      myFile = SD.open("test.txt", FILE_WRITE);
-      if (myFile)
-      {
-        Serial.print("Writing to test.txt...");
-        myFile.println(c);
-        Serial.print(c);
-      }
-      myFile.close();
+  // Connettiti al server FTP
+  if (ftpClient.begin("82.223.8.163", 22, "gsm", "gsm2024")) {
+    Serial.println("FTP connection established");
+
+    // Invia i dati del log al file sul server FTP
+    if (ftpClient.openFile("/var/www/html/gsm/receiveData.php", FTPClient::WRITE)) {
+      Serial.println("File opened successfully");
+      // Dati del log
+      String logData = "Your log data here"; // sostituisci con i tuoi dati di log
+      ftpClient.println(logData); // Invia i dati al file PHP
+      ftpClient.closeFile(); // Chiudi il file dopo aver inviato i dati
+    } else {
+      Serial.println("Failed to open file");
     }
-  }
-  // if the server's disconnected, stop the client:
-  if (!client.connected())
-  {
-    Serial.println();
-    Serial.println("disconnecting.");
-    client.stop();
-    // do nothing forevermore:
-    while (true)
-      ;
+    ftpClient.end();
+  } else {
+    Serial.println("FTP connection failed");
   }
 }
+
+void loop() {
+  delay(1000); // Timeout
+}
+/*--------------------------------------------------------------------------------------------------*/
