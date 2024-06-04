@@ -1,4 +1,354 @@
 /*--------------------------------------------------------------------------------------------------*/
+#include <Ethernet.h>
+#include <SPI.h>
+
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  // default
+IPAddress ip(192, 168, 1, 112);
+IPAddress myDns(192, 168, 1, 1);
+
+// Initialize the Ethernet client library
+EthernetClient client;
+EthernetClient dclient;
+
+//FTP:
+IPAddress server(82, 223, 8, 163);
+char user[] = "gsm";
+char pasw[] = "gsm2024";
+char fold[] = "/var/www/html/gsm";
+char fname[] = "readLog.txt";
+
+char outBuf[128];
+byte outCount;
+
+void setup() {
+  Ethernet.init(10);  // Most Arduino shields
+  Serial.begin(9600);
+  Ethernet.begin(mac);
+
+  Serial.print("Assigned IP: ");
+  Serial.println(Ethernet.localIP());
+}
+
+void loop() {
+  while (Serial.available()) {
+    // Serial.read();  // Clear the buffer
+    doFTP();
+  }
+}
+
+byte doFTP() {
+  if (client.connect(server, 21)) {  // Change port to 21 for FTP
+    Serial.println(F("connected"));
+  } else {
+    Serial.println(F("connection failed"));
+    return 0;
+  }
+
+  if (!eRcv()) return 0;
+
+  client.print(F("USER "));
+  client.println(user);
+  if (!eRcv()) return 0;
+
+  client.print(F("PASS "));
+  client.println(pasw);
+  if (!eRcv()) return 0;
+
+  client.println(F("SYST"));
+  if (!eRcv()) return 0;
+
+  client.println(F("TYPE I"));
+  if (!eRcv()) return 0;
+
+  client.println(F("PASV"));
+  if (!eRcv()) return 0;
+
+  char *tStr = strtok(outBuf, "(,");
+  int array_pasv[6];
+  for (int i = 0; i < 6; i++) {
+    tStr = strtok(NULL, "(,");
+    array_pasv[i] = atoi(tStr);
+    if (tStr == NULL) {
+      Serial.println(F("Bad PASV Answer"));
+      return 0;
+    }
+  }
+
+  unsigned int hiPort, loPort;
+  hiPort = array_pasv[4] << 8;
+  loPort = array_pasv[5] & 255;
+  unsigned int dataPort = hiPort | loPort;
+
+  client.print(F("STOR "));
+  client.println(fname);
+  if (!eRcv()) {
+    dclient.stop();
+    return 0;
+  }
+
+  if (dclient.connect(server, dataPort)) {
+    Serial.println(F("Data connected"));
+    const char* dati = "ciao";
+    dclient.write(dati, strlen(dati));
+  } else {
+    Serial.println(F("Data connection failed"));
+    client.stop();
+    return 0;
+  }
+
+  dclient.stop();
+  Serial.println(F("Data disconnected"));
+
+  if (!eRcv()) return 0;
+
+  client.println(F("QUIT"));
+  if (!eRcv()) return 0;
+
+  client.stop();
+  Serial.println(F("Command disconnected"));
+
+  return 1;
+}
+
+byte eRcv() {
+  byte respCode;
+  while (!client.available()) delay(1);
+  respCode = client.peek();
+  outCount = 0;
+  while (client.available()) {
+    char b = client.read();
+    Serial.write(b);
+    if (outCount < sizeof(outBuf) - 1) {
+      outBuf[outCount++] = b;
+      outBuf[outCount] = 0;
+    }
+  }
+  if (respCode >= '4') {
+    ftperror(respCode);
+    return 0;
+  }
+  return 1;
+}
+
+void ftperror(byte errorCode) {
+  Serial.print(F("FTP error: "));
+  Serial.println(errorCode);
+  while (client.available()) {
+    char b = client.read();
+    Serial.write(b);
+  }
+  client.stop();
+  Serial.println(F("disconnected"));
+}
+/*--------------------------------------------------------------------------------------------------*/
+
+
+
+
+/*--------------------------------------------------------------------------------------------------*/
+// 12/04/2024 ***modificato (tolto LCD liquid crystal, perché non è presente.***
+// Arduino Misuratore di potenzza e corrente elettrica con SCT-013-030
+
+#include "EmonLib.h"  // Per il corretto funzionamento istallare la libreria EmonLib
+#include <Wire.h>     // Libreria wire già presente in Arduino IDE
+#include <SPI.h>
+#include <Ethernet.h> // Libreria Ethernet
+
+// oggetto libreria Emon
+EnergyMonitor emon1;
+
+// Inserire la tensione della vostra rete elettrica
+int rede = 230.0; // Italia 230V in alcuni paesi 110V (voltage)
+// Pin del sensore SCT su A1
+int pin_sct = A0;
+
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+// Set the static IP address to use if the DHCP fails to assign
+IPAddress ip(192, 168, 18, 123);
+IPAddress myDns(192, 168, 1, 1);
+
+EthernetClient client;
+EthernetClient dclient;
+
+// FTP:
+IPAddress server(82, 223, 8, 163);
+char user[] = "gsm";
+char pasw[] = "gsm2024";
+char fold[] = "processedLog";
+char fname[] = "data.txt";
+
+char outBuf[128];
+byte outCount;
+
+void setup() {
+  Serial.begin(9600); // Apro la comunicazione seriale
+  emon1.current(pin_sct, 29); // Pin, calibrazione - Corrente Const= Ratio/Res. Burder. 1800/62 = 29.
+
+  Ethernet.init(10);  // Most Arduino shields
+
+  // start the Ethernet connection:
+  Serial.println("Initialize Ethernet");
+  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    Serial.println("Ethernet shield was not found. Sorry, can't run without hardware. :(");
+    while (true) {
+      delay(1); // do nothing, no point running without Ethernet hardware
+    }
+  }
+  if (Ethernet.linkStatus() == LinkOFF) {
+    Serial.println("Ethernet cable is not connected.");
+  }
+  Ethernet.begin(mac);
+  Serial.print("Assigned IP: ");
+  Serial.println(Ethernet.localIP());
+}
+
+void loop() {
+  // Calcolo della corrente  
+  double Irms = emon1.calcIrms(1480);
+  if (Irms) {
+    // Mostra il valore della Corrente
+    Serial.print("Corrente :  ");
+    Serial.print(Irms); // Irms
+    // Calcola e mostra i valori della Potenza
+    Serial.print("   Potenza :  ");
+    Serial.println(Irms * rede);   // Scrivo sul monitor seriale Corrente*Tensione=Potenza
+    // Invia il valore via FTP
+    sendFTP(Irms);
+  } else {
+    Serial.println("Nessun valore");
+  }
+  delay(1000);
+}
+
+void sendFTP(double Irms) {
+  if (client.connect(server, 21)) {
+    Serial.println(F("connected"));
+  } else {
+    Serial.println(F("connection failed"));
+    return;
+  }
+
+  if (!eRcv()) return;
+  client.print(F("USER "));
+  client.println(user);
+
+  if (!eRcv()) return;
+  client.print(F("PASS "));
+  client.println(pasw);
+
+  if (!eRcv()) return;
+  client.println(F("SYST"));
+
+  if (!eRcv()) return;
+  client.println(F("Type I"));
+
+  if (!eRcv()) return;
+  client.println(F("PASV"));
+
+  if (!eRcv()) return;
+
+  char *tStr = strtok(outBuf, "(,");
+  int array_pasv[6];
+  for (int i = 0; i < 6; i++) {
+    tStr = strtok(NULL, "(,");
+    array_pasv[i] = atoi(tStr);
+    if (tStr == NULL) {
+      Serial.println(F("Bad PASV Answer"));
+      return;
+    }
+  }
+
+  client.println(F("PWD"));
+  if (!eRcv()) return;
+
+  client.print(F("CWD "));
+  client.println(fold);
+  if (!eRcv()) return;
+
+  unsigned int hiPort, loPort;
+  hiPort = array_pasv[4] << 8;
+  loPort = array_pasv[5] & 255;
+
+  Serial.print(F("Data port: "));
+  hiPort = hiPort | loPort;
+  Serial.println(hiPort);
+
+  // connessione al server
+  if (dclient.connect(server, hiPort)) {
+    Serial.println(F("Data connected"));
+  } else {
+    Serial.println(F("Data connection failed"));
+    client.stop();
+    return;
+  }
+
+  client.print(F("STOR "));  // comando per memorizzare il file spedito
+  client.println(fname);
+
+  if (!eRcv()) {
+    dclient.stop();
+    return;
+  }
+
+  Serial.println(F("Writing"));
+  char dati[32];
+  sprintf(dati, "Irms: %.2f\n", Irms);
+
+  dclient.write(dati, sizeof(dati));
+  dclient.stop();
+  Serial.println(F("Data disconnected"));
+
+  if (!eRcv()) return;
+  client.println(F("QUIT"));
+
+  if (!eRcv()) return;
+  client.stop();
+  Serial.println(F("Command disconnected"));
+}
+
+byte eRcv() {
+  byte respCode;
+  byte b;
+
+  while (!client.available()) delay(1);
+  respCode = client.peek();
+  outCount = 0;
+  while (client.available()) {
+    b = client.read();
+    Serial.write(b);
+    if (outCount < 127) {
+      outBuf[outCount] = b;
+      outCount++;
+      outBuf[outCount] = 0;
+    }
+  }
+
+  if (respCode >= '4') {
+    ftperror();
+    return 0;
+  }
+
+  return 1;
+}
+
+void ftperror() {
+  byte b = 0;
+  client.println(F("QUIT"));
+  while (!client.available()) delay(1);
+  while (client.available()) {
+    b = client.read();
+    Serial.write(b);
+  }
+
+  client.stop();
+  Serial.println(F("disconnected"));
+}
+/*--------------------------------------------------------------------------------------------------*/
+
+
+
+
+/*--------------------------------------------------------------------------------------------------*/
 /* // più affidabile
   Web client
   ENC28j60
@@ -195,183 +545,6 @@ void ftperror() {
 
 
 
-
-/*--------------------------------------------------------------------------------------------------*/
-/*
-  Web client
-  ENC28j60
-  https://playground.arduino.cc/Code/FTP/
- */
-
-#include <SPI.h>
-#include <UIPEthernet.h>
-
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-
-IPAddress server( 82, 223, 8, 163 );  // Indirizzo IP del server SFTP
-char user[] = "gsm";  // Nome utente per l'autenticazione
-char pasw[] = "gsm2024";  // Password per l'autenticazione
-char fold[] = "/var/www/html/gsm/processedLog";  // Percorso dei file sul server
-
-char outBuf[128];
-byte outCount;
-
-void setup() {
-  Ethernet.init(10);  // Inizializza l'interfaccia Ethernet
-  
-  // Inizializza la comunicazione seriale
-  Serial.begin(9600);
-  while (!Serial) {
-    delay(1);
-  }  
-
-  // Connessione all'Ethernet
-  Serial.println("Initialize Ethernet");
-  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-    Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
-    while (true) {
-      delay(1); // Non fare nulla se manca l'hardware Ethernet
-    }
-  }
-  if (Ethernet.linkStatus() == LinkOFF) {
-    Serial.println("Ethernet cable is not connected.");
-  }
-  Ethernet.begin(mac);
-  Serial.print("Assigned IP: ");
-  Serial.println(Ethernet.localIP());
-}
-
-void loop() {
-  while (Serial.available()) {
-    doSFTP();
-  }
-}
-
-byte doSFTP() {
-  // Connessione al server SFTP sulla porta 22
-  if (client.connect(server, 22)) {
-    Serial.println(F("connected"));
-  } else {
-    Serial.println(F("connection failed"));
-    return 0;
-  }
-
-  // Ricezione del banner di benvenuto dal server SFTP
-  if (!eRcv()) return 0;
-
-  // Invio del nome utente
-  client.print(F("USER "));
-  client.println(user);
-  if (!eRcv()) return 0;
-
-  // Invio della password
-  client.print(F("PASS "));
-  client.println(pasw);
-  if (!eRcv()) return 0;
-
-  // Impostazione del tipo di trasferimento
-  client.println(F("TYPE I"));
-  if (!eRcv()) return 0;
-
-  // Generazione del nome del file basato sulla data e sull'ora correnti
-  char fname[50];
-  generateFileName(fname);
-  client.print(F("STOR "));
-  client.println(fname);
-  if (!eRcv()) return 0;
-
-  // Scrittura dei dati sul file di log
-  Serial.println(F("Writing"));
-  char dati[20]; // Dimensione dei dati da inviare
-  // Modifica i dati da inviare in base alle letture del sensore
-  sprintf(dati, "Sensor data: %d\n", analogRead(A0)); // Esempio: legge un valore dal pin A0
-  client.println(dati);
-  // Fine lettura dati
-
-  // Chiude la connessione dati e stampa su seriale
-  client.stop();
-  Serial.println(F("Data disconnected"));
-
-  // Chiude la connessione FTP e stampa su seriale
-  client.println(F("QUIT"));
-  if (!eRcv()) return 0;
-  client.stop();
-  Serial.println(F("Command disconnected"));
-
-  return 1;
-}
-
-byte eRcv() {
-  byte respCode;
-  byte b;
-
-  while (!client.available()) delay(1);
-  respCode = client.peek();
-  outCount = 0;
-  while (client.available()) {  
-    b = client.read();    
-    Serial.write(b); 
-    if (outCount < 127) {
-      outBuf[outCount] = b;
-      outCount++;      
-      outBuf[outCount] = 0;
-    }
-  }
-
-  if (respCode >= '4') {
-    ftperror();
-    return 0;  
-  }
-
-  return 1;
-}
-
-void ftperror() {
-  byte b = 0;
-  client.println(F("QUIT"));
-  while (!client.available()) delay(1);
-  while (client.available()) {  
-    b = client.read();    
-    Serial.write(b);
-  }
-
-  client.stop();
-  Serial.println(F("disconnected"));  
-}
-
-void generateFileName(char* fname) {
-  // Ottiene la data e l'ora correnti
-  String dateTime = getDateTime();
-  // Costruisce il nome del file usando la data e l'ora correnti
-  sprintf(fname, "%s/%s.log", fold, dateTime.c_str());
-}
-
-String getDateTime() {
-  // Ottiene la data e l'ora correnti
-  String dateTime;
-  dateTime += year();
-  dateTime += '-';
-  if (month() < 10) dateTime += '0';
-  dateTime += month();
-  dateTime += '-';
-  if (day() < 10) dateTime += '0';
-  dateTime += day();
-  dateTime += '-';
-  if (hour() < 10) dateTime += '0';
-  dateTime += hour();
-  dateTime += '-';
-  if (minute() < 10) dateTime += '0';
-  dateTime += minute();
-  dateTime += '-';
-  if (second() < 10) dateTime += '0';
-  dateTime += second();
-  return dateTime;
-}
-/*--------------------------------------------------------------------------------------------------*/
-
-
-
-
 /*--------------------------------------------------------------------------------------------------*/
 #include <SPI.h>
 #include <Ethernet.h>
@@ -457,48 +630,48 @@ String getTimestamp() {
 /*
  * Misuratore di potenza e corrente elettrica con SCT-013-030 e invio dati su server Apache
 */
-// #include <Ethernet.h>
-// #include <SPI.h>
+#include <Ethernet.h>
+#include <SPI.h>
 
-// byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  // default
-// //byte ip[] = { 10, 0, 0, 177 };
-// byte server[] = { 82, 223, 8, 163 }; // sftp server
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  // default
+//byte ip[] = { 10, 0, 0, 177 };
+byte server[] = { 82, 223, 8, 163 }; // sftp server
 
-// EthernetClient client;
+EthernetClient client;
 
-// void setup()
-// {
-//   Ethernet.begin(mac);
-//   Serial.begin(9600);
+void setup()
+{
+  Ethernet.begin(mac);
+  Serial.begin(9600);
 
-//   delay(1000);
-//   Serial.println("connecting...");
-//   Serial.println("my IP: ", Ethernet.gatewayIP());
+  delay(1000);
+  Serial.println("connecting...");
+  Serial.println("my IP: ", Ethernet.gatewayIP());
 
-//   if (client.connect(server, 80)) {
-//     Serial.println("connected");
-//     client.println("GET /search?q=arduino HTTP/1.0");
-//     client.println();
-//   } else {
-//     Serial.println("connection failed");
-//   }
-// }
+  if (client.connect(server, 80)) {
+    Serial.println("connected");
+    client.println("GET /search?q=arduino HTTP/1.0");
+    client.println();
+  } else {
+    Serial.println("connection failed");
+  }
+}
 
-// void loop()
-// {
-//   if (client.available()) {
-//     char c = client.read();
-//     Serial.print(c);
-//   }
+void loop()
+{
+  if (client.available()) {
+    char c = client.read();
+    Serial.print(c);
+  }
 
-//   if (!client.connected()) {
-//     Serial.println();
-//     Serial.println("...disconnecting...");
-//     client.stop();
-//     for(;;)
-//       ;
-//   }
-// }
+  if (!client.connected()) {
+    Serial.println();
+    Serial.println("...disconnecting...");
+    client.stop();
+    for(;;)
+      ;
+  }
+}
 /*--------------------------------------------------------------------------------------------------*/
 
 
