@@ -1,5 +1,7 @@
 #include <SPI.h>
 #include <Ethernet.h>
+#include "EmonLib.h"  //Per il corretto funzionamento istallare la libreria EmonLib
+#include <Wire.h>     // Libreria wire già presente in Arduino ide
 
 // Configurazione rete
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
@@ -14,8 +16,16 @@ const char* ftpDir = "gsm"; // Percorso relativo dalla root
 const char* logFileName = "logfile.log";
 const char* fileContent = "ciao";
 
+// oggetto libreria Emon
+EnergyMonitor emon1;
+//Inserire la tensione della vostra rete elettrica
+int rede = 230.0; // Italia 230V in alcuni paesi 110V  (voltage)
+//Pin del sensore SCT su A1
+int pin_sct = A0;  // or A0
+
 void setup() {
   Serial.begin(9600);
+<<<<<<< Updated upstream
 
   // Inizializza Ethernet
   Ethernet.begin(mac, ip);
@@ -89,6 +99,28 @@ void setup() {
 void loop() {
   // Non c'è bisogno di nulla nel loop
 }
+=======
+  emon1.current(pin_sct, 29); //Pin, calibrazione - Corrente Const= Ratio/Res. Burder. 1800/62 = 29. 
+  delay(1000); // Allow time to initialize Ethernet
+}
+
+void loop() {
+   //Calcolo della corrente  
+  double Irms = emon1.calcIrms(1480);
+  if(Irms) {
+    //Mostra il valore della Corrente
+    Serial.print("Corrente :  ");
+    Serial.print(Irms); // Irms
+    //Calcola e mostra i valori della Potenza
+    Serial.print("   Potenza :  ");
+    Serial.println(Irms*rede);   //Scrivo sul monitor seriale Corrente*Tensione=Potenza
+  } else {
+    Serial.println("Nessun valore");
+  }
+
+  // Generate your log file here
+  String logData = generateLogFile();
+>>>>>>> Stashed changes
 
 void sendCommand(String command) {
   client.println(command);
@@ -129,6 +161,7 @@ bool extractPasvIpPort(IPAddress& pasvIp, uint16_t& pasvPort) {
   return true;
 }
 
+<<<<<<< Updated upstream
 bool changeDirectory(String dir) {
   sendCommand("CWD " + dir);
   return readResponse(250);
@@ -181,3 +214,10 @@ bool changeDirectory(String dir) {
 //   // Return the log data as a String
 //   return "Sample log data";
 // }
+=======
+String generateLogFile() {
+  // Generate your log data here (e.g., sensor readings, system status)
+  // Return the log data as a String
+  return "Sample log data";
+}
+>>>>>>> Stashed changes
